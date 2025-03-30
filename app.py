@@ -1,26 +1,29 @@
 from flask import Flask, render_template, request, redirect
 from datetime import datetime, timedelta
 import os
-from PIL import Image
+import re
+from PIL import Image, UnidentifiedImageError
 import pytesseract
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
 
-# In-memory storage
+# In-memory store
 grocery_items = []
 
-# Allowed file extensions
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-# Expiry prediction rules
+# Updated expiry rules including receipt items
 expiry_prediction = {
+    "coffee": 180,
+    "eggs": 14,
+    "pancakes": 2,
+    "sausage": 7,
     "milk": 7,
     "bread": 5,
-    "eggs": 14,
     "cheese": 10,
     "chicken": 3,
     "lettuce": 4,
@@ -36,16 +39,23 @@ def predict_expiry(item_name):
 
 def process_receipt(image_path):
     try:
-        print(f"Opening image: {image_path}")  # Debug log
-        image = Image.open(image_path)
+        image = Image.open(image_path).convert("L")
         text = pytesseract.image_to_string(image)
+        print("🧾 OCR Output:\n" + "-"*40)
+        print(text)
+        print("-" * 40)
+    except UnidentifiedImageError:
+        print(f"❌ Cannot read image: {image_path}")
+        return []
     except Exception as e:
-        print(f"Error reading image: {e}")
+        print(f"❌ Error processing image: {e}")
         return []
 
     detected_items = []
+    text_lower = text.lower()
+
     for keyword in expiry_prediction:
-        if keyword in text.lower():
+        if re.search(rf'\b{keyword}\b', text_lower):
             days = predict_expiry(keyword)
             expiry_date = datetime.now() + timedelta(days=days)
             detected_items.append({
@@ -54,6 +64,7 @@ def process_receipt(image_path):
                 "days_left": days
             })
 
+    print(f"✅ Detected: {[item['name'] for item in detected_items]}")
     return detected_items
 
 @app.route("/", methods=["GET", "POST"])
@@ -61,30 +72,34 @@ def index():
     global grocery_items
 
     if request.method == "POST":
-        # Manual input
-        if "name" in request.form and "expiry" in request.form:
+        # Manual item
+        if "name" in request.form:
             name = request.form["name"]
-            expiry_date = datetime.strptime(request.form["expiry"], "%Y-%m-%d")
-            days_left = (expiry_date - datetime.now()).days
+            expiry_input = request.form.get("expiry")
+
+            if expiry_input:
+                expiry_date = datetime.strptime(expiry_input, "%Y-%m-%d")
+            else:
+                days = predict_expiry(name)
+                expiry_date = datetime.now() + timedelta(days=days)
 
             grocery_items.append({
                 "name": name,
                 "expiry": expiry_date.strftime("%Y-%m-%d"),
-                "days_left": days_left
+                "days_left": (expiry_date - datetime.now()).days
             })
 
         # Receipt upload
         elif "receipt" in request.files:
             file = request.files["receipt"]
             if file and allowed_file(file.filename):
-                path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
                 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+                path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
                 file.save(path)
-
-                scanned_items = process_receipt(path)
-                grocery_items.extend(scanned_items)
+                scanned = process_receipt(path)
+                grocery_items.extend(scanned)
             else:
-                return "Unsupported file type. Please upload a PNG, JPG, or JPEG.", 400
+                return "Unsupported file type", 400
 
         return redirect("/")
 
@@ -93,7 +108,6 @@ def index():
         item["days_left"] = (datetime.strptime(item["expiry"], "%Y-%m-%d") - datetime.now()).days
 
     grocery_items.sort(key=lambda x: x["days_left"])
-
     return render_template("index.html", items=grocery_items)
 
 if __name__ == "__main__":
