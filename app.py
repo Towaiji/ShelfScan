@@ -6,6 +6,7 @@ from PIL import Image
 import pytesseract
 from dotenv import load_dotenv
 import requests
+from difflib import SequenceMatcher
 
 # Load environment variables
 load_dotenv()
@@ -15,7 +16,10 @@ app = Flask(__name__)
 UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# Estimated shelf life (in days) for common items
+# Global grocery item list
+items = []
+
+# Default expiry estimates (in days)
 default_expiry_days = {
     "milk": 7,
     "bread": 3,
@@ -25,8 +29,6 @@ default_expiry_days = {
     "coffee": 30,
     "sausage": 7
 }
-
-items = []
 
 @app.route("/", methods=["GET", "POST"])
 def index():
@@ -43,11 +45,25 @@ def index():
                 image = Image.open(path)
                 text = pytesseract.image_to_string(image).lower()
 
-                for keyword in default_expiry_days:
-                    if re.search(rf"\b{keyword}\b", text):
-                        expiry_date = datetime.now() + timedelta(days=default_expiry_days[keyword])
-                        scanned_items.append({"item": keyword, "expiry": expiry_date.date()})
-                        items.append({"item": keyword, "expiry": expiry_date.date()})
+                print("🧾 OCR Output:\n" + "-"*40)
+                print(text)
+                print("-"*40)
+
+                found = []
+                for line in text.splitlines():
+                    line = line.strip()
+                    for keyword in default_expiry_days:
+                        ratio = SequenceMatcher(None, keyword, line).ratio()
+                        if ratio > 0.6 and keyword not in found:
+                            expiry_date = datetime.now() + timedelta(days=default_expiry_days[keyword])
+                            item_data = {"item": keyword, "expiry": expiry_date.date()}
+                            scanned_items.append(item_data)
+                            items.append(item_data)
+                            found.append(keyword)
+
+                print("📦 Final Items List:")
+                for i in items:
+                    print(f"- {i['item']} (expires {i['expiry']})")
 
             except Exception as e:
                 return f"❌ Error processing receipt: {e}"
@@ -57,7 +73,7 @@ def index():
 @app.route("/add", methods=["POST"])
 def add():
     global items
-    item = request.form.get("item", "").lower()
+    item = request.form.get("item", "").strip().lower()
     expiry = request.form.get("expiry")
 
     if item:
@@ -77,7 +93,7 @@ def add():
 def suggest():
     global items
     if not SPOONACULAR_API_KEY:
-        return render_template("index.html", items=items, suggestions="⚠️ No Spoonacular API key found.", scanned=[])
+        return render_template("index.html", items=items, suggestions="⚠️ No API key found.", scanned=[])
 
     ingredient_list = ",".join([i["item"] for i in items])
     if not ingredient_list:

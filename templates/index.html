@@ -1,57 +1,116 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
-    <meta charset="UTF-8">
-    <title>ShelfScan 🍽️</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ShelfScan</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          keyframes: {
+            fadeInUp: {
+              '0%': { opacity: '0', transform: 'translateY(10px)' },
+              '100%': { opacity: '1', transform: 'translateY(0)' },
+            }
+          },
+          animation: {
+            fadeInUp: 'fadeInUp 0.4s ease-out',
+          }
+        }
+      }
+    }
+  </script>
 </head>
-<body>
-    <h1>🧾 ShelfScan – Smart Grocery Tracker</h1>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100 font-sans p-4 sm:p-6 lg:p-10 transition">
 
-    <!-- 📸 Receipt Scan Form -->
-    <h3>📸 Scan Grocery Receipt</h3>
-    <form method="POST" enctype="multipart/form-data">
-        <input type="file" name="receipt" accept="image/*" required>
-        <button type="submit">Scan</button>
-    </form>
+  <div class="max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 space-y-6">
+    <div class="flex justify-between items-center">
+      <h1 class="text-3xl font-bold">🧾 ShelfScan</h1>
+      <button onclick="toggleDark()" class="text-sm px-3 py-1 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition">
+        Toggle Dark Mode
+      </button>
+    </div>
 
-    {% if scanned %}
-        <h4>✅ Scanned Items:</h4>
-        <ul>
-            {% for item in scanned %}
-                <li>{{ item.item }} — Expiry: {{ item.expiry }}</li>
-            {% endfor %}
+    <!-- Scan Receipt -->
+    <section class="space-y-2">
+      <h2 class="text-xl font-semibold">📸 Scan Grocery Receipt</h2>
+      <form method="POST" enctype="multipart/form-data" id="scan-form" class="flex flex-col sm:flex-row items-center gap-4">
+        <input type="file" name="receipt" accept="image/*" class="border rounded p-2 w-full sm:w-auto" required>
+        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded px-4 py-2 transition">
+          Scan
+        </button>
+      </form>
+      <p id="loadingText" class="text-sm text-blue-600 font-medium hidden mt-2">🔍 Scanning receipt...</p>
+
+      {% if scanned %}
+        <ul class="bg-gray-50 dark:bg-gray-700 border rounded p-3 mt-3 space-y-2 text-sm animate-fadeInUp">
+          {% for item in scanned %}
+            <li class="animate-fadeInUp">✅ <strong>{{ item.item }}</strong> — Expiry: {{ item.expiry }}</li>
+          {% endfor %}
         </ul>
-    {% endif %}
+      {% endif %}
+    </section>
 
-    <!-- ➕ Manual Item Form -->
-    <h3>➕ Add Item Manually</h3>
-    <form action="/add" method="POST">
-        <input type="text" name="item" placeholder="Item (e.g. eggs)" required>
-        <input type="date" name="expiry">
-        <button type="submit">Add Item</button>
-    </form>
+    <!-- Add Item -->
+    <section class="space-y-2">
+      <h2 class="text-xl font-semibold">➕ Add Item Manually</h2>
+      <form action="/add" method="POST" class="flex flex-col sm:flex-row items-center gap-4">
+        <input type="text" name="item" placeholder="Item (e.g. eggs)" class="border rounded p-2 w-full sm:w-1/2" required>
+        <input type="date" name="expiry" class="border rounded p-2 w-full sm:w-1/2">
+        <button type="submit" class="bg-green-600 hover:bg-green-700 text-white rounded px-4 py-2 transition">
+          Add Item
+        </button>
+      </form>
+    </section>
 
-    <!-- 📦 All Tracked Items -->
-    <h3>📦 Current Items</h3>
-    {% if items %}
-        <ul>
-            {% for item in items %}
-                <li>{{ item.item }} — Expiry: {{ item.expiry }}</li>
-            {% endfor %}
+    <!-- Items List -->
+    <section class="space-y-2">
+      <h2 class="text-xl font-semibold">📦 Your Items</h2>
+      {% if items %}
+        <ul class="space-y-2 bg-gray-50 dark:bg-gray-700 border rounded p-3 text-sm">
+          {% for item in items %}
+            <li class="animate-fadeInUp">🗂 <strong>{{ item.item }}</strong> — Expiry: {{ item.expiry }}</li>
+          {% endfor %}
         </ul>
-    {% else %}
-        <p>No items added yet.</p>
-    {% endif %}
+      {% else %}
+        <p class="text-gray-500 dark:text-gray-400">No items yet.</p>
+      {% endif %}
+    </section>
 
-    <!-- 🍽️ Recipe Suggestion Button -->
-    <h3>🍽️ Get Recipe Suggestions</h3>
-    <form action="/suggest" method="POST">
-        <button type="submit">Suggest Recipes</button>
-    </form>
+    <!-- Recipe Suggestions -->
+    <section class="space-y-2">
+      <h2 class="text-xl font-semibold">🍽️ Get Recipe Suggestions</h2>
+      <form action="/suggest" method="POST">
+        <button type="submit" class="bg-purple-600 hover:bg-purple-700 text-white rounded px-4 py-2 transition">
+          Suggest Recipes
+        </button>
+      </form>
 
-    {% if suggestions %}
-        <h4>🍴 Suggested Recipes:</h4>
-        <pre>{{ suggestions }}</pre>
-    {% endif %}
+      {% if suggestions %}
+        <div class="bg-yellow-50 dark:bg-yellow-900 border border-yellow-300 dark:border-yellow-700 rounded p-4 mt-3">
+          <h3 class="font-semibold text-yellow-800 dark:text-yellow-300 mb-2">ChefBot Suggestions:</h3>
+          <pre class="whitespace-pre-wrap text-sm text-yellow-900 dark:text-yellow-100">{{ suggestions }}</pre>
+        </div>
+      {% endif %}
+    </section>
+  </div>
+
+  <script>
+    // Toggle dark mode
+    function toggleDark() {
+      document.documentElement.classList.toggle('dark')
+    }
+
+    // Show loading animation when scanning
+    document.getElementById('scan-form')?.addEventListener('submit', () => {
+      document.getElementById('loadingText')?.classList.remove('hidden');
+    });
+  </script>
 </body>
 </html>
