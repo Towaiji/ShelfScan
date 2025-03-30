@@ -3,7 +3,7 @@ import pytesseract
 import re
 
 # Path to your test image
-image_path = "1185-receipt.jpg"
+image_path = "images/1185-receipt.jpg"
 
 try:
     image = Image.open(image_path)
