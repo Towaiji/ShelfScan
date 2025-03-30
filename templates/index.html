@@ -1,30 +1,39 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>ShelfScan</title>
+    <title>ShelfScan – Smart Expiry Tracker</title>
     <style>
         body { font-family: sans-serif; margin: 2rem; }
+        input, button { margin: 0.5rem 0; padding: 0.4rem; }
         .soon { color: red; font-weight: bold; }
         .ok { color: green; }
+        form { margin-bottom: 1.5rem; }
     </style>
 </head>
 <body>
     <h1>ShelfScan – Smart Expiry Tracker</h1>
+
+    <h3>📋 Manually Add Item</h3>
     <form method="POST">
         <input type="text" name="name" placeholder="Item name" required>
         <input type="date" name="expiry" required>
         <button type="submit">Add Item</button>
     </form>
 
-    <h2>Items</h2>
+    <h3>🧾 Scan Receipt (Image Upload)</h3>
+    <form method="POST" enctype="multipart/form-data">
+        <input type="file" name="receipt" accept="image/*" required>
+        <button type="submit">Upload & Scan</button>
+    </form>
+
+    <h2>🧺 Tracked Items</h2>
     <ul>
         {% for item in items %}
             <li>
-                {{ item.name }} – Expires in 
+                {{ item.name }} – 
                 <span class="{{ 'soon' if item.days_left <= 2 else 'ok' }}">
-                    {{ item.days_left }} days
-                </span>
-                ({{ item.expiry }})
+                    {{ item.days_left }} days left
+                </span> (Expires: {{ item.expiry }})
             </li>
         {% else %}
             <p>No items added yet.</p>
