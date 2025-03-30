@@ -8,6 +8,7 @@
         .soon { color: red; font-weight: bold; }
         .ok { color: green; }
         form { margin-bottom: 1.5rem; }
+        small { display: block; color: #666; margin-top: -0.3rem; margin-bottom: 1rem; }
     </style>
 </head>
 <body>
@@ -16,7 +17,8 @@
     <h3>📋 Manually Add Item</h3>
     <form method="POST">
         <input type="text" name="name" placeholder="Item name" required>
-        <input type="date" name="expiry" required>
+        <input type="date" name="expiry">
+        <small>(Leave expiry blank to auto-predict)</small>
         <button type="submit">Add Item</button>
     </form>
 
