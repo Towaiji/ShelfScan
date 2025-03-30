@@ -1,45 +1,57 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>ShelfScan – Smart Expiry Tracker</title>
-    <style>
-        body { font-family: sans-serif; margin: 2rem; }
-        input, button { margin: 0.5rem 0; padding: 0.4rem; }
-        .soon { color: red; font-weight: bold; }
-        .ok { color: green; }
-        form { margin-bottom: 1.5rem; }
-        small { display: block; color: #666; margin-top: -0.3rem; margin-bottom: 1rem; }
-    </style>
+    <meta charset="UTF-8">
+    <title>ShelfScan 🍽️</title>
 </head>
 <body>
-    <h1>ShelfScan – Smart Expiry Tracker</h1>
+    <h1>🧾 ShelfScan – Smart Grocery Tracker</h1>
 
-    <h3>📋 Manually Add Item</h3>
-    <form method="POST">
-        <input type="text" name="name" placeholder="Item name" required>
+    <!-- 📸 Receipt Scan Form -->
+    <h3>📸 Scan Grocery Receipt</h3>
+    <form method="POST" enctype="multipart/form-data">
+        <input type="file" name="receipt" accept="image/*" required>
+        <button type="submit">Scan</button>
+    </form>
+
+    {% if scanned %}
+        <h4>✅ Scanned Items:</h4>
+        <ul>
+            {% for item in scanned %}
+                <li>{{ item.item }} — Expiry: {{ item.expiry }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
+    <!-- ➕ Manual Item Form -->
+    <h3>➕ Add Item Manually</h3>
+    <form action="/add" method="POST">
+        <input type="text" name="item" placeholder="Item (e.g. eggs)" required>
         <input type="date" name="expiry">
-        <small>(Leave expiry blank to auto-predict)</small>
         <button type="submit">Add Item</button>
     </form>
 
-    <h3>🧾 Scan Receipt (Image Upload)</h3>
-    <form method="POST" enctype="multipart/form-data">
-        <input type="file" name="receipt" accept="image/*" required>
-        <button type="submit">Upload & Scan</button>
+    <!-- 📦 All Tracked Items -->
+    <h3>📦 Current Items</h3>
+    {% if items %}
+        <ul>
+            {% for item in items %}
+                <li>{{ item.item }} — Expiry: {{ item.expiry }}</li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No items added yet.</p>
+    {% endif %}
+
+    <!-- 🍽️ Recipe Suggestion Button -->
+    <h3>🍽️ Get Recipe Suggestions</h3>
+    <form action="/suggest" method="POST">
+        <button type="submit">Suggest Recipes</button>
     </form>
 
-    <h2>🧺 Tracked Items</h2>
-    <ul>
-        {% for item in items %}
-            <li>
-                {{ item.name }} – 
-                <span class="{{ 'soon' if item.days_left <= 2 else 'ok' }}">
-                    {{ item.days_left }} days left
-                </span> (Expires: {{ item.expiry }})
-            </li>
-        {% else %}
-            <p>No items added yet.</p>
-        {% endfor %}
-    </ul>
+    {% if suggestions %}
+        <h4>🍴 Suggested Recipes:</h4>
+        <pre>{{ suggestions }}</pre>
+    {% endif %}
 </body>
 </html>
